@@ -1,0 +1,7 @@
+pyserial
+firebase-admin
+psycopg2-binary
+streamlit
+pandas
+streamlit-autorefresh
+requests

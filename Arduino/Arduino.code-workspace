@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "TestingMQ135_C02",
+			"path": "../TestingMQ135_C02"
+		},
+		{
+			"name": "TestingSoilMoistureSensor",
+			"path": "../TestingSoilMoistureSensor"
+		}
+	],
+	"settings": {}
+}
