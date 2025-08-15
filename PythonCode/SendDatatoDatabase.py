@@ -1,15 +1,20 @@
-'''
-Nhiệm vụ chính của Python code này là:
-1. Xử lý Packet từ Arduino
-2. Rút data từ Packet
-3. Thực hiện đồng thời hai việc:
-    1. Gửi dữ liệu lên Firebase Realtime Database
-    2. Gửi dữ liệu lên Neon database
-4. Vòng lặp While được sử dụng để thực hiện liên tục việc đọc dữ liệu từ cổng Serial và gửi dữ liệu lên hai cơ sở dữ liệu
-5. Lưu ý:
-    1. Cơ sở dữ liệu Firebase Realtime Database được sử dụng để lưu trữ dữ liệu theo thời gian thực
-    2. Cơ sở dữ liệu Neon database được sử dụng để lưu trữ dữ liệu lâu dài phục vụ cho việc phân tích và báo cáo
-'''
+"""
+Mô tả:
+    Chương trình Python này thực hiện đọc dữ liệu cảm biến từ Arduino thông qua
+    cổng Serial, sau đó xử lý và gửi đồng thời dữ liệu lên hai hệ thống cơ sở dữ liệu.
+
+Chức năng chính:
+    1. Đọc và xử lý packet dữ liệu từ Arduino.
+    2. Trích xuất các giá trị cảm biến từ packet.
+    3. Gửi dữ liệu lên:
+        - Firebase Realtime Database: lưu trữ dữ liệu thời gian thực.
+        - Neon Database: lưu trữ dữ liệu dài hạn phục vụ phân tích và hậu xử lý dữ liệu.
+    4. Sử dụng vòng lặp `while` để duy trì việc thu thập và đồng bộ dữ liệu liên tục.
+
+Yêu cầu:
+    Cài đặt các thư viện cần thiết:
+        pip install -r requirements.txt
+"""
 import serial
 import time
 import firebase_admin
@@ -18,26 +23,28 @@ from firebase_admin import db
 import psycopg2
 from psycopg2 import pool
 
-'''
-Cài đặt các thư viện cần thiết:
-    pip install -r requirements.txt
-'''
-
-conn_string = ""
+conn_string = "postgresql://neondb_owner:#############################################/neondb?sslmode=require"
 
 port = '/dev/tty.usbserial-0001'
 baud_rate = 9600  
 
 path = credentials.Certificate("SmartAgricultureApplicationsFirebaseServiceAccount.json")
 firebase_admin.initialize_app(path, {
-    'databaseURL': '' })
+    'databaseURL': 'https://#############################################.firebaseio.com/' })
 
 def PacketProcessing(raw_packet):
     """
-    Xử lý packet logic từ Arduino
-    Chuyển đổi dữ liệu từ string sang dictionary để phù hợp với Firebase Realtime Database
+    Phân tích gói dữ liệu cảm biến từ Arduino thành dạng dictionary.
+
+    Tham số:
+        raw_packet (str): Chuỗi CSV chứa dữ liệu cảm biến theo thứ tự:
+            Light, Temperature, Air_Humidity, CO2, Smoke, Soil_humidity.
+
+    Trả về:
+        dict: Dictionary với giá trị float cho từng loại cảm biến, 
+        sẵn sàng để lưu trữ lên Firebase Realtime Database.
     """
-    data_values = raw_packet.split(",")                            # Cái này là một cái DICTIONARY chứa các key-value
+    data_values = raw_packet.split(",")                           
     data = {
         "Light": float(data_values[0]),
         "Temperature": float(data_values[1]),
@@ -50,16 +57,27 @@ def PacketProcessing(raw_packet):
 
 def SendDataToFirebase(data):
     """
-    Gửi dữ liệu lên Firebase Realtime Database
+    Gửi dữ liệu cảm biến lên Firebase Realtime Database.
+
+    Tham số:
+        data (dict): Dictionary chứa dữ liệu cảm biến, với các key:
+            Light, Temperature, Air_Humidity, CO2, Smoke, Soil_humidity.
     """
     ref = db.reference("sensor_data")
-    ref.push(data)                                                 # push để thêm với timestamp, hoặc ref.set(data) để ghi đè
+    # .push() để thêm với timestamp, hoặc ref.set(data) để ghi đè
+    ref.push(data)                                                
 
 def transform_data_to_tuple(data):
     """
-    Chuyển đổi dữ liệu từ dictionary sang tuple theo thứ tự:
-    (Light, Temperature, Air_Humidity, CO2, Smoke, Soil_humidity)
-    Để gửi dữ liệu lên Neon database
+    Chuyển đổi dữ liệu cảm biến từ dictionary sang tuple.
+
+    Tham số:
+        data (dict): Dictionary chứa dữ liệu cảm biến, với các key:
+            Light, Temperature, Air_Humidity, CO2, Smoke, Soil_humidity.
+
+    Trả về:
+        tuple: Tuple chứa giá trị cảm biến theo thứ tự:
+            (Light, Temperature, Air_Humidity, CO2, Smoke, Soil_humidity).
     """
     return (
         data["Light"],
@@ -70,11 +88,9 @@ def transform_data_to_tuple(data):
         data["Soil_humidity"]
     )
 
-# Logic xử lý chính
 try:
-    connect = serial.Serial(port, baud_rate) # Mở Serial 
+    connect = serial.Serial(port, baud_rate) 
     
-    # Phần xử lý cho Neon Serverless database
     conn_pool = psycopg2.pool.SimpleConnectionPool(
         minconn=1,
         maxconn=10,
@@ -83,22 +99,25 @@ try:
     conn = conn_pool.getconn()
     cur = conn.cursor()
 
-    # Đẩy dữ liệu realtime
     while True:
         if connect.in_waiting > 0:
-            Packet = connect.readline().decode('utf-8').strip()    # Đọc dữ liệu từ cổng serial -> readline() để đọc từng dòng (Cho đến khi gặp '\n') | decode('utf-8') để chuyển đổi chuỗi bytes sang string | strip() để loại bỏ các ký tự không cần thiết (như '\r' và '\n') ở đầu và cuối string
+            # Đọc 1 dòng dữ liệu từ Serial, giải mã UTF-8 và loại bỏ ký tự thừa
+            Packet = connect.readline().decode('utf-8').strip()    
             print(Packet)
+
+            # Chuyển đổi dữ liệu & gửi lên Firebase
             data = PacketProcessing(Packet)
             SendDataToFirebase(data)
+
+            # Lưu dữ liệu vào Neon Database
             cur.execute("""
                     INSERT INTO sensor_data (Light, Temperature, Air_Humidity, CO2, Smoke, Soil_humidity)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, transform_data_to_tuple(data))
             conn.commit()
-        time.sleep(0.1)                                            # White true sẽ dừng lại trong 0.1s trước khi bắt đầu vòng lặp mới
+        time.sleep(0.1)                                           
 
-
-except serial.SerialException as e:                                # Xử lý các ngoại lệ
+except serial.SerialException as e:                               
     print(f"Error: {e}") 
 except KeyboardInterrupt:
     print(". . . . . . . . . . . . . . . . . . . .")

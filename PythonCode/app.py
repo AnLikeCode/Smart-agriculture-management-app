@@ -7,40 +7,33 @@ from psycopg2 import pool
 import pandas as pd
 from streamlit_autorefresh import st_autorefresh
 import requests
-from backend import get_latest_sensor_data, display_data_table # Backend
-#, check_smoke_alert
+from backend import get_latest_sensor_data, display_data_table, check_smoke_alert
 
 
-# cấu hình trang hiển thị Streamlit
 st.set_page_config(page_title="Smart Dashboard", layout="wide") 
 st_autorefresh(interval=8500, limit=None, key="auto_refresh") 
-
-#========== THIẾT LẬP KẾT NỐI TỚI CÁC DATABASE ==========
 if not firebase_admin._apps:
-    cred = credentials.Certificate("")  
+    cred = credentials.Certificate("########################################")  
     firebase_admin.initialize_app(cred, {
-        'databaseURL': ''  
+        'databaseURL': '################################################'  
     })
 conn_pool = psycopg2.pool.SimpleConnectionPool(
         minconn=1,
         maxconn=10,
-        dsn=""
+        dsn="################################################"
     )
 conn = conn_pool.getconn()    
 cur = conn.cursor()
 
-
-# Biến và cảm báo cháy
-smoke_threshold = 45  # Ngưỡng cảnh báo cháy
+# Ngưỡng cảnh báo cháy
+smoke_threshold = 45  
 latest_data = get_latest_sensor_data()
-# check_smoke_alert(latest_data, smoke_threshold)
+check_smoke_alert(latest_data, smoke_threshold)
 
 
 #========== FRONTEND - XỬ LÝ UI ==========
 st.title("ỨNG DỤNG QUẢN LÝ NÔNG NGHIỆP THÔNG MINH")
 df = display_data_table(cur)
-
-# Hiển thị data liên tục theo thời gian thực - Load từ Firebase
 if latest_data:
     st.subheader("🔄 Dữ liệu cảm biến thời gian thực")
     col1, col2, col3, col4 = st.columns(4)
@@ -53,14 +46,11 @@ if latest_data:
     with col3:
         st.metric("💧 Air Humidity", f"{latest_data['Air_Humidity']} %")
     with col4:   
-        st.metric("⚖️ Smoke", f"{latest_data['Smoke']} ppm")
-        # st.metric("⚖️ Smoke", f"{latest_data['Smoke']} ppm", delta="⚠️ Vượt ngưỡng!" if latest_data['Smoke'] > smoke_threshold else None) 
+        st.metric("⚖️ Smoke", f"{latest_data['Smoke']} ppm", delta="⚠️ Vượt ngưỡng!" if latest_data['Smoke'] > smoke_threshold else None) 
 else:
     st.warning("Chưa có dữ liệu...")
 
 df['timestamp'] = pd.to_datetime(df['timestamp'])
-
-# Hiển thị dữ liêu các cảm biến dưới dạng biểu đồ theo thời gian 
 st.subheader("📈 Biểu đồ dữ liệu cảm biến 5 phút gần nhất")
 chart_cols1, chart_cols2, chart_cols3 = st.columns(3)
 with chart_cols1:
@@ -82,7 +72,5 @@ with chart_cols3:
     st.caption("🌱 Soil Humidity (%)")
     st.line_chart(df.set_index('timestamp')['soil_humidity'], use_container_width=True)
     
-
-# Hiển thị dữ liệu từ Neon dưới dạng bảng - Lấy từ Neon
 st.subheader("📊 Thống kê dữ liệu cảm biến 5 phút gần nhất")
 st.dataframe(display_data_table(cur))

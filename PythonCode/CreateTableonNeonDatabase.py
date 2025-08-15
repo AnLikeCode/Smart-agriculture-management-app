@@ -1,12 +1,20 @@
-'''
-NHIỆM VỤ CỦA FILE PYTHON NÀY LÀ:
-1. Tạo bản với các trường trong Neon database
-    - Chỉ chạy một lần đầu tiên để tạo bảng -> Thay vì chạy query trên Neon thì chạy cái này ngầu hơn!
-'''
+"""
+Mô tả:
+    Chương trình Python này kết nối đến Neon Database và tạo bảng chứa dữ liệu
+    cảm biến.
+
+Chức năng chính:
+    1. Kết nối đến Neon Database bằng PostgreSQL.
+    2. Tạo bảng với các trường dữ liệu cảm biến cần thiết.
+    3. Thay thế thao tác tạo bảng thủ công trên Neon bằng việc thực thi trực tiếp qua Python.
+
+Yêu cầu:
+    - Chỉ chạy file này một lần khi khởi tạo dự án.
+"""
 import psycopg2
 from psycopg2 import pool
 
-conn_string = ""
+conn_string = "postgresql://neondb_owner:#############################################/neondb?sslmode=require"
 
 try:
     conn_pool = psycopg2.pool.SimpleConnectionPool(
@@ -30,13 +38,11 @@ try:
     """)
     conn.commit()
 
-# Xử lý ngoại lệ
 except psycopg2.OperationalError as e:
     print(f"Lỗi: {e}")
 except Exception as e:
     print(f"Lỗi khác: {e}")
 finally:
-    # Đóng cursor và trả kết nối về pool
     if 'cur' in locals():
         cur.close()
     if 'conn' in locals():

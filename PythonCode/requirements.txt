@@ -1,7 +1,7 @@
-pyserial
-firebase-admin
-psycopg2-binary
-streamlit
-pandas
-streamlit-autorefresh
-requests
+pyserial==3.5
+firebase-admin==6.8.0
+psycopg2-binary==2.9.10
+streamlit==1.45.1
+pandas==2.2.0
+streamlit-autorefresh==1.0.1
+requests==2.31.0
