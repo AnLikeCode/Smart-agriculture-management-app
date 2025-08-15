@@ -33,6 +33,7 @@ PythonCode/           # Ứng dụng Python (Dashboard, xử lý dữ liệu, k�
 SmartAgricultureApplicationsFirebaseServiceAccount.json # Tài khoản dịch vụ Firebase (ẩn thông tin)
 .gitignore            # Cấu hình bỏ qua file/thư mục trong Git
 README.md             # Tài liệu mô tả dự án
+```
 
 ---
   
